@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#090909">
+
+    <title>MADRAZO FAMILY | Official Store</title>
+
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+    <!-- LANDING PAGE -->
+    <section id="landing" class="landing">
+
+        <div class="landing-shade"></div>
+
+        <audio id="bgMusic" loop preload="auto">
+            <source src="/music/cartel.mp3" type="audio/mpeg">
+        </audio>
+
+        <div class="landing-content">
+
+            <div class="crest">MF</div>
+
+            <p class="eyebrow">THE FAMILY BUSINESS</p>
+
+            <h1>
+                MADRAZO
+                <span>FAMILY</span>
+            </h1>
+
+            <p class="landing-subtitle">OFFICIAL RP STORE</p>
+
+            <button id="enterBtn" class="btn btn-gold btn-large" type="button">
+                اضغط هنا للدخول ←
+            </button>
+
+            <div class="music-control">
+                <button id="musicToggle" class="btn btn-outline" type="button">
+                    🎵 تشغيل الموسيقى
+                </button>
+            </div>
+
+        </div>
+
+        <div class="landing-footer">
+            LOS SANTOS • MADRAZO FAMILY
+        </div>
+
+    </section>
+
+
+    <!-- MAIN STORE -->
+    <main id="store" class="store hidden">
+
+        <!-- HEADER -->
+        <header class="topbar">
+
+            <a class="brand" href="#" id="homeBtn">
+                <span class="brand-mark">MF</span>
+
+                <span>
+                    MADRAZO <b>FAMILY</b>
+                    <small>OFFICIAL STORE</small>
+                </span>
+            </a>
+
+            <span class="status">
+                <i></i> STORE ONLINE
+            </span>
+
+        </header>
+
+
+        <!-- HERO -->
+        <section class="hero">
+
+            <p class="eyebrow">WELCOME TO THE FAMILY</p>
+
+            <h2>متجر <span>MADRAZO</span></h2>
+
+            <p>اختر المنتجات والكميات، ثم أكمل معلومات طلبك.</p>
+
+        </section>
+
+
+        <!-- PRODUCTS -->
+        <section class="products-grid">
+
+            <!-- COCAINE -->
+            <article class="product-card">
+
+                <div class="product-art cocaine-art">
+                    <span class="product-symbol">◆</span>
+                    <span class="art-label">MADRAZO SELECT</span>
+                </div>
+
+                <div class="product-info">
+
+                    <div class="product-title-row">
+                        <h3>Cocaine</h3>
+                        <span class="availability">متوفر</span>
+                    </div>
+
+                    <p class="product-desc">منتج داخل عالم GTA RP</p>
+
+                    <div class="price">
+                        <strong>750$</strong>
+                        <span>/ للوحدة</span>
+                    </div>
+
+                    <div class="quantity-row">
+
+                        <label>الكمية</label>
+
+                        <div class="stepper">
+
+                            <button
+                                type="button"
+                                data-step="-1"
+                                data-product="cocaine"
+                                aria-label="تقليل كمية Cocaine"
+                            >−</button>
+
+                            <output id="qty-cocaine" aria-live="polite">0</output>
+
+                            <button
+                                type="button"
+                                data-step="1"
+                                data-product="cocaine"
+                                aria-label="زيادة كمية Cocaine"
+                            >+</button>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="btn btn-outline choose-product"
+                        data-product="cocaine"
+                        type="button"
+                    >
+                        اختيار المنتج
+                    </button>
+
+                </div>
+            </article>
+
+
+            <!-- WEED -->
+            <article class="product-card">
+
+                <div class="product-art weed-art">
+                    <span class="product-symbol">✦</span>
+                    <span class="art-label">MADRAZO SELECT</span>
+                </div>
+
+                <div class="product-info">
+
+                    <div class="product-title-row">
+                        <h3>Weed</h3>
+                        <span class="availability">متوفر</span>
+                    </div>
+
+                    <p class="product-desc">منتج داخل عالم GTA RP</p>
+
+                    <div class="price">
+                        <strong>750$</strong>
+                        <span>/ للوحدة</span>
+                    </div>
+
+                    <div class="quantity-row">
+
+                        <label>الكمية</label>
+
+                        <div class="stepper">
+
+                            <button
+                                type="button"
+                                data-step="-1"
+                                data-product="weed"
+                                aria-label="تقليل كمية Weed"
+                            >−</button>
+
+                            <output id="qty-weed" aria-live="polite">0</output>
+
+                            <button
+                                type="button"
+                                data-step="1"
+                                data-product="weed"
+                                aria-label="زيادة كمية Weed"
+                            >+</button>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="btn btn-outline choose-product"
+                        data-product="weed"
+                        type="button"
+                    >
+                        اختيار المنتج
+                    </button>
+
+                </div>
+            </article>
+
+        </section>
+
+
+        <!-- ORDER SECTION -->
+        <section id="checkout" class="checkout orderSection">
+
+            <div id="orderSection">
+
+                <div class="section-heading">
+
+                    <span class="section-number">01</span>
+
+                    <div>
+                        <h2>تأكيد الطلب</h2>
+                        <p>أكمل المراحل التالية لإرسال طلبك.</p>
+                    </div>
+
+                </div>
+
+
+                <form id="orderForm">
+
+                    <!-- PROGRESS -->
+                    <div class="steps-progress">
+
+                        <div class="step-progress-item active" data-step-indicator="1">
+                            <span>1</span>
+                            <small>المنتجات</small>
+                        </div>
+
+                        <div class="step-progress-item" data-step-indicator="2">
+                            <span>2</span>
+                            <small>المعلومات</small>
+                        </div>
+
+                        <div class="step-progress-item" data-step-indicator="3">
+                            <span>3</span>
+                            <small>الاستلام</small>
+                        </div>
+
+                        <div class="step-progress-item" data-step-indicator="4">
+                            <span>4</span>
+                            <small>التأكيد</small>
+                        </div>
+
+                    </div>
+
+
+                    <!-- STEP 1: SHOPPING CART -->
+                    <div class="form-step active" data-step="1">
+
+                        <h2>سلة المشتريات</h2>
+                        <p>اختر الكميات المطلوبة من المنتجات.</p>
+
+                        <div class="final-summary">
+
+                            <div class="summary-row">
+                                <span>Cocaine</span>
+                                <strong id="cartCocaine">0 × 750$ = 0$</strong>
+                            </div>
+
+                            <div class="summary-row">
+                                <span>Weed</span>
+                                <strong id="cartWeed">0 × 750$ = 0$</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="total-box">
+
+                            <div>
+                                <span>إجمالي الكمية</span>
+                                <strong id="cartCount">0</strong>
+                            </div>
+
+                            <div class="grand-total">
+                                <span>المجموع الفرعي</span>
+                                <strong id="subtotal">0$</strong>
+                            </div>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn btn-gold btn-submit"
+                            data-next
+                        >
+                            التالي ←
+                        </button>
+
+                    </div>
+
+
+                    <!-- STEP 2: GANG INFORMATION -->
+                    <div class="form-step" data-step="2">
+
+                        <h2>معلومات العصابة</h2>
+                        <p>أدخل معلومات المافيا والراديو.</p>
+
+                        <label class="field">
+                            اسم المافيا أو العصابة
+
+                            <input
+                                name="gangName"
+                                type="text"
+                                maxlength="80"
+                                placeholder="اسم العصابة"
+                                autocomplete="organization"
+                                required
+                            >
+                        </label>
+
+                        <label class="field">
+                            رقم الراديو
+
+                            <input
+                                name="radio"
+                                type="text"
+                                maxlength="40"
+                                placeholder="مثال: 123"
+                                required
+                            >
+                        </label>
+
+                        <div class="step-actions">
+
+                            <button type="button" class="btn btn-gold" data-next>
+                                التالي ←
+                            </button>
+
+                            <button type="button" class="btn btn-back" data-prev>
+                                السابق →
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- STEP 3: DELIVERY -->
+                    <div class="form-step" data-step="3">
+
+                        <h2>طريقة الاستلام</h2>
+                        <p>اختر طريقة الاستلام وأدخل الموقع.</p>
+
+                        <div class="delivery-options">
+
+                            <label class="delivery-option">
+
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="delivery"
+                                    checked
+                                >
+
+                                <span>
+                                    <b>مع التوصيل</b>
+
+                                    <small id="deliveryFeeLabel">
+                                        رسوم التوصيل: 650$
+                                    </small>
+                                </span>
+
+                            </label>
+
+                            <label class="delivery-option">
+
+                                <input
+                                    type="radio"
+                                    name="delivery"
+                                    value="pickup"
+                                >
+
+                                <span>
+                                    <b>بدون توصيل</b>
+                                    <small>استلام بدون رسوم توصيل</small>
+                                </span>
+
+                            </label>
+
+                        </div>
+
+                        <label class="field">
+                            الموقع داخل المدينة
+
+                            <input
+                                name="location"
+                                type="text"
+                                maxlength="160"
+                                placeholder="اكتب الموقع"
+                                autocomplete="street-address"
+                                required
+                            >
+                        </label>
+
+                        <div class="total-box">
+
+                            <div>
+                                <span>سعر المنتجات</span>
+                                <strong id="subtotal-step3">0$</strong>
+                            </div>
+
+                            <div>
+                                <span>التوصيل</span>
+                                <strong id="deliveryTotal">650$</strong>
+                            </div>
+
+                            <div class="grand-total">
+                                <span>المجموع النهائي</span>
+                                <strong id="grandTotal">650$</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="step-actions">
+
+                            <button type="button" class="btn btn-gold" data-next>
+                                التالي ←
+                            </button>
+
+                            <button type="button" class="btn btn-back" data-prev>
+                                السابق →
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- STEP 4: REVIEW -->
+                    <div class="form-step" data-step="4">
+
+                        <h2>مراجعة الطلب</h2>
+                        <p>تأكد من معلوماتك قبل الإرسال.</p>
+
+                        <div id="finalSummary" class="final-summary"></div>
+
+                        <div class="total-box">
+
+                            <div class="grand-total">
+                                <span>المجموع النهائي</span>
+                                <strong id="finalTotal">650$</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="step-actions">
+
+                            <button
+                                class="btn btn-gold btn-submit"
+                                type="submit"
+                                id="submitBtn"
+                            >
+                                تأكيد ومتابعة ←
+                            </button>
+
+                            <button type="button" class="btn btn-back" data-prev>
+                                السابق →
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </section>
+
+
+        <!-- FOOTER -->
+        <footer>
+            <p>
+                © <span id="year"></span>
+                <span>MADRAZO FAMILY</span>
+                — ALL RIGHTS RESERVED
+            </p>
+        </footer>
+
+    </main>
+
+
+    <!-- CONFIRMATION MODAL -->
+    <div
+        id="confirmModal"
+        class="hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+    >
+
+        <div class="modal-content">
+
+            <button
+                type="button"
+                id="closeModal"
+                aria-label="إغلاق"
+            >×</button>
+
+            <h2 id="modalTitle">تأكيد الطلب</h2>
+
+            <p>راجع تفاصيل طلبك قبل الإرسال النهائي.</p>
+
+            <div id="summary"></div>
+
+            <button type="button" id="confirmBtn">
+                تأكيد وإرسال الطلب
+            </button>
+
+            <p
+                id="modalMessage"
+                class="modal-message"
+                aria-live="polite"
+            ></p>
+
+        </div>
+
+    </div>
+
+
+    <!-- JAVASCRIPT -->
+    <script src="/script.js"></script>
+
+
+    <!-- MUSIC CONTROLS -->
+    <script>
+        const bgMusic = document.getElementById("bgMusic");
+        const musicToggle = document.getElementById("musicToggle");
+        const enterBtn = document.getElementById("enterBtn");
+
+        bgMusic.volume = 0.35;
+
+        async function toggleMusic() {
+            if (bgMusic.paused) {
+                try {
+                    await bgMusic.play();
+                    musicToggle.textContent = "⏸ إيقاف الموسيقى";
+                } catch (error) {
+                    musicToggle.textContent = "تعذر تشغيل الموسيقى";
+                }
+            } else {
+                bgMusic.pause();
+                musicToggle.textContent = "🎵 تشغيل الموسيقى";
+            }
+        }
+
+        musicToggle.addEventListener("click", toggleMusic);
+
+        enterBtn.addEventListener("click", async () => {
+            if (bgMusic.paused) {
+                try {
+                    await bgMusic.play();
+                    musicToggle.textContent = "⏸ إيقاف الموسيقى";
+                } catch (error) {
+                    // يمكن تشغيل الموسيقى يدوياً
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
