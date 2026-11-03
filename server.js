@@ -1,8 +1,6 @@
 
 "use strict";
 
-require("dotenv").config();
-
 const express = require("express");
 const path = require("path");
 
@@ -133,7 +131,7 @@ app.post("/api/orders", async (req, res) => {
         let totalItems = 0;
 
         for (const item of body.products) {
-            if (!item || typeof item !== "object") {
+            if (!item || typeof item !== "object" || Array.isArray(item)) {
                 return res.status(400).json({
                     message: "أحد المنتجات غير صحيح."
                 });
@@ -167,15 +165,6 @@ app.post("/api/orders", async (req, res) => {
             ) {
                 return res.status(400).json({
                     message: "الكمية غير صحيحة."
-                });
-            }
-
-            if (
-                !Number.isSafeInteger(product.price) ||
-                product.price <= 0
-            ) {
-                return res.status(400).json({
-                    message: `سعر ${product.name} غير صحيح.`
                 });
             }
 
@@ -289,20 +278,16 @@ app.post("/api/orders", async (req, res) => {
             DISCORD_WEBHOOK_URL,
             {
                 method: "POST",
-
                 headers: {
                     "Content-Type": "application/json"
                 },
-
                 body: JSON.stringify({
                     username: "MADRAZO FAMILY",
                     embeds: [embed],
-
                     allowed_mentions: {
                         parse: []
                     }
                 }),
-
                 signal: AbortSignal.timeout(15000)
             }
         );
@@ -348,6 +333,6 @@ app.post("/api/orders", async (req, res) => {
 app.listen(PORT, () => {
     console.log("-------------------------------------");
     console.log(" MADRAZO FAMILY STORE");
-    console.log(` http://localhost:${PORT}`);
+    console.log(` Server running on port ${PORT}`);
     console.log("-------------------------------------");
 });
