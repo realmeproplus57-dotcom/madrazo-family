@@ -1,788 +1,552 @@
-
 "use strict";
 
-// ==========================================
-// MADRAZO FAMILY STORE
-// MULTI-PRODUCT ORDER SYSTEM
-// ==========================================
+/* =========================================
+   MADRAZO FAMILY — OFFICIAL STORE
+   STORE LOGIC
+========================================= */
 
-// PRODUCTS
-const PRODUCTS = Object.freeze({
+/*
+    PRICES
+    Cocaine = 600$
+    Meth = 600$
+*/
+
+const PRODUCTS = {
     cocaine: {
         name: "Cocaine",
-        price: 750
+        price: 600
     },
-    weed: {
-        name: "Weed",
-        price: 750
+
+    meth: {
+        name: "Meth",
+        price: 600
     }
-});
-
-// SETTINGS
-const DELIVERY_FEE = 650;
-const MAX_QUANTITY = 1000;
-const TOTAL_STEPS = 4;
-
-// STATE
-const quantities = {
-    cocaine: 0,
-    weed: 0
 };
 
-let currentStep = 1;
-let pendingOrder = null;
-let isSending = false;
+const MAX_QUANTITY = 1000;
 
-const $ = (id) => document.getElementById(id);
+/* =========================================
+   ELEMENTS
+========================================= */
 
-// ==========================================
-// INITIALIZATION
-// ==========================================
+const pages = {
+    welcome: document.getElementById("welcomePage"),
+    products: document.getElementById("productsPage"),
+    summary: document.getElementById("summaryPage"),
+    confirm: document.getElementById("confirmPage")
+};
 
-document.addEventListener("DOMContentLoaded", () => {
-    initializeYear();
-    initializeStoreNavigation();
-    initializeProductButtons();
-    initializeOrderForm();
-    initializeStepNavigation();
-    initializeModal();
-    initializeMusic();
+const enterStoreBtn = document.getElementById("enterStoreBtn");
+const musicToggle = document.getElementById("musicToggle");
+const backgroundMusic = document.getElementById("backgroundMusic");
 
-    updateCart();
-    showStep(1);
+const backToWelcomeBtn = document.getElementById("backToWelcomeBtn");
+const continueToSummaryBtn = document.getElementById("continueToSummaryBtn");
+const backToProductsBtn = document.getElementById("backToProductsBtn");
+const continueToConfirmBtn = document.getElementById("continueToConfirmBtn");
+const backToSummaryBtn = document.getElementById("backToSummaryBtn");
 
-    console.log("MADRAZO FAMILY STORE initialized.");
+const selectedItemsCount = document.getElementById("selectedItemsCount");
+const productsTotal = document.getElementById("productsTotal");
+
+const summaryProducts = document.getElementById("summaryProducts");
+const summarySubtotal = document.getElementById("summarySubtotal");
+const summaryTotal = document.getElementById("summaryTotal");
+
+const finalItemsCount = document.getElementById("finalItemsCount");
+const finalTotal = document.getElementById("finalTotal");
+
+const orderForm = document.getElementById("orderForm");
+const submitOrderBtn = document.getElementById("submitOrderBtn");
+const orderMessage = document.getElementById("orderMessage");
+
+/* =========================================
+   CART
+========================================= */
+
+const cart = {
+    cocaine: 0,
+    meth: 0
+};
+
+/* =========================================
+   HELPERS
+========================================= */
+
+function formatPrice(amount) {
+    return new Intl.NumberFormat("en-US").format(amount) + "$";
+}
+
+function getQuantity(productId) {
+    return cart[productId] || 0;
+}
+
+function getTotalItems() {
+    return Object.values(cart).reduce((sum, quantity) => {
+        return sum + quantity;
+    }, 0);
+}
+
+function getSubtotal() {
+    let total = 0;
+
+    for (const [productId, quantity] of Object.entries(cart)) {
+        const product = PRODUCTS[productId];
+
+        if (product.price !== null) {
+            total += product.price * quantity;
+        }
+    }
+
+    return total;
+}
+
+function hasUnpricedItems() {
+    return Object.entries(cart).some(([productId, quantity]) => {
+        return quantity > 0 && PRODUCTS[productId].price === null;
+    });
+}
+
+function getPricedItemsTotal() {
+    return getSubtotal();
+}
+
+function getOrderDetails() {
+    return Object.entries(cart)
+        .filter(([productId, quantity]) => quantity > 0)
+        .map(([productId, quantity]) => {
+            const product = PRODUCTS[productId];
+
+            return {
+                id: productId,
+                name: product.name,
+                quantity,
+                unitPrice: product.price,
+                subtotal: product.price === null
+                    ? null
+                    : product.price * quantity
+            };
+        });
+}
+
+/* =========================================
+   PAGE NAVIGATION
+========================================= */
+
+function showPage(pageName) {
+    Object.values(pages).forEach(page => {
+        page.classList.remove("active");
+    });
+
+    pages[pageName].classList.add("active");
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+/* =========================================
+   MUSIC
+========================================= */
+
+let musicStarted = false;
+
+async function startMusic() {
+    try {
+        backgroundMusic.volume = 0.35;
+
+        await backgroundMusic.play();
+
+        musicStarted = true;
+        updateMusicButton();
+    } catch (error) {
+        console.warn("Music could not start:", error);
+
+        musicToggle.hidden = false;
+        musicToggle.textContent = "▶ تشغيل الموسيقى";
+    }
+}
+
+function updateMusicButton() {
+    musicToggle.hidden = false;
+
+    if (backgroundMusic.paused) {
+        musicToggle.textContent = "▶ تشغيل الموسيقى";
+    } else {
+        musicToggle.textContent = "🔊 إيقاف الموسيقى";
+    }
+}
+
+enterStoreBtn.addEventListener("click", async () => {
+    showPage("products");
+
+    if (!musicStarted || backgroundMusic.paused) {
+        await startMusic();
+    }
 });
 
-// ==========================================
-// YEAR
-// ==========================================
-
-function initializeYear() {
-    const year = $("year");
-
-    if (year) {
-        year.textContent = new Date().getFullYear();
+musicToggle.addEventListener("click", async () => {
+    if (backgroundMusic.paused) {
+        await startMusic();
+    } else {
+        backgroundMusic.pause();
+        updateMusicButton();
     }
-}
+});
 
-// ==========================================
-// STORE NAVIGATION
-// ==========================================
+/* =========================================
+   QUANTITY VALIDATION
+========================================= */
 
-function initializeStoreNavigation() {
-    $("enterBtn")?.addEventListener("click", () => {
-        $("landing")?.classList.add("hidden");
-        $("store")?.classList.remove("hidden");
+function normalizeQuantity(value) {
+    let quantity = Number.parseInt(value, 10);
 
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-    });
-
-    $("homeBtn")?.addEventListener("click", (event) => {
-        event.preventDefault();
-
-        if (isSending) return;
-
-        $("store")?.classList.add("hidden");
-        $("landing")?.classList.remove("hidden");
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-    });
-}
-
-// ==========================================
-// MUSIC
-// ==========================================
-
-function initializeMusic() {
-    const music = $("bgMusic");
-    const toggle = $("musicToggle");
-
-    if (!music || !toggle) return;
-
-    music.volume = 0.35;
-
-    async function playMusic() {
-        try {
-            await music.play();
-            toggle.textContent = "⏸ إيقاف الموسيقى";
-        } catch (error) {
-            toggle.textContent = "تعذر تشغيل الموسيقى";
-            console.warn("Music playback failed:", error);
-        }
+    if (!Number.isFinite(quantity) || quantity < 0) {
+        quantity = 0;
     }
 
-    function pauseMusic() {
-        music.pause();
-        toggle.textContent = "🎵 تشغيل الموسيقى";
+    if (quantity > MAX_QUANTITY) {
+        quantity = MAX_QUANTITY;
     }
 
-    toggle.addEventListener("click", () => {
-        if (music.paused) {
-            playMusic();
-        } else {
-            pauseMusic();
-        }
-    });
-
-    $("enterBtn")?.addEventListener("click", () => {
-        if (music.paused) {
-            playMusic();
-        }
-    });
+    return quantity;
 }
 
-// ==========================================
-// PRODUCT BUTTONS
-// ==========================================
+function setQuantity(productId, quantity) {
+    if (!Object.prototype.hasOwnProperty.call(PRODUCTS, productId)) {
+        return;
+    }
 
-function initializeProductButtons() {
-    document.querySelectorAll(
-        "button[data-product][data-step]"
-    ).forEach((button) => {
-        button.addEventListener("click", () => {
-            if (isSending) return;
+    cart[productId] = normalizeQuantity(quantity);
 
-            const product = button.dataset.product;
-            const step = Number(button.dataset.step);
-
-            if (!PRODUCTS[product]) return;
-            if (!Number.isInteger(step)) return;
-
-            quantities[product] = Math.max(
-                0,
-                Math.min(
-                    MAX_QUANTITY,
-                    quantities[product] + step
-                )
-            );
-
-            updateCart();
-        });
-    });
-
-    document.querySelectorAll(".choose-product").forEach((button) => {
-        button.addEventListener("click", () => {
-            if (isSending) return;
-
-            const product = button.dataset.product;
-
-            if (!PRODUCTS[product]) return;
-
-            quantities[product] = Math.min(
-                MAX_QUANTITY,
-                quantities[product] + 1
-            );
-
-            updateCart();
-
-            $("orderSection")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-        });
-    });
-}
-
-// ==========================================
-// CART
-// ==========================================
-
-function getCart() {
-    const cocaine = quantities.cocaine;
-    const weed = quantities.weed;
-
-    const cocaineTotal = cocaine * PRODUCTS.cocaine.price;
-    const weedTotal = weed * PRODUCTS.weed.price;
-
-    return {
-        cocaine,
-        weed,
-        cocaineTotal,
-        weedTotal,
-        count: cocaine + weed,
-        subtotal: cocaineTotal + weedTotal
-    };
-}
-
-function getDelivery() {
-    const selected = document.querySelector(
-        'input[name="delivery"]:checked'
+    const input = document.querySelector(
+        `.quantity-input[data-product="${productId}"]`
     );
 
-    return selected?.value || "";
+    if (input) {
+        input.value = cart[productId];
+    }
+
+    updateStore();
 }
 
-function getOrderTotals() {
-    const cart = getCart();
-    const deliveryOption = getDelivery();
-
-    const deliveryFee =
-        deliveryOption === "delivery" ? DELIVERY_FEE : 0;
-
-    return {
-        ...cart,
-        deliveryFee,
-        total: cart.subtotal + deliveryFee
-    };
-}
-
-function updateCart() {
-    updateProductQuantity("cocaine");
-    updateProductQuantity("weed");
-
-    const cart = getCart();
-
-    if ($("cartCocaine")) {
-        $("cartCocaine").textContent =
-            `${cart.cocaine} × ${money(PRODUCTS.cocaine.price)} = ${money(cart.cocaineTotal)}`;
-    }
-
-    if ($("cartWeed")) {
-        $("cartWeed").textContent =
-            `${cart.weed} × ${money(PRODUCTS.weed.price)} = ${money(cart.weedTotal)}`;
-    }
-
-    if ($("cartCount")) {
-        $("cartCount").textContent = cart.count;
-    }
-
-    if ($("subtotal")) {
-        $("subtotal").textContent = money(cart.subtotal);
-    }
-
-    updateTotals();
-}
-
-function updateProductQuantity(product) {
-    const display = $("qty-" + product);
-
-    if (display) {
-        display.textContent = quantities[product];
-    }
-}
-
-// ==========================================
-// ORDER FORM EVENTS
-// ==========================================
-
-function initializeOrderForm() {
-    document.querySelectorAll(
-        'input[name="delivery"]'
-    ).forEach((radio) => {
-        radio.addEventListener("change", updateTotals);
-    });
-
-    $("orderForm")?.addEventListener(
-        "submit",
-        handleFormSubmit
-    );
-}
-
-// ==========================================
-// MONEY FORMAT
-// ==========================================
-
-function money(amount) {
-    return new Intl.NumberFormat("en-US", {
-        maximumFractionDigits: 0
-    }).format(amount) + "$";
-}
-
-// ==========================================
-// ESCAPE HTML
-// ==========================================
-
-function escapeHtml(value) {
-    const entities = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-    };
-
-    return String(value).replace(/[&<>"']/g, (character) => {
-        return entities[character];
-    });
-}
-
-// ==========================================
-// SUMMARY ROW
-// ==========================================
-
-function addSummaryRow(label, value, extra = "") {
-    return `
-        <div class="summary-row ${escapeHtml(extra)}">
-            <span>${escapeHtml(label)}</span>
-            <strong>${escapeHtml(value)}</strong>
-        </div>
-    `;
-}
-
-// ==========================================
-// CREATE ORDER
-// ==========================================
-
-function makeOrder() {
-    const form = $("orderForm");
-
-    if (!form) {
-        throw new Error("نموذج الطلب غير موجود.");
-    }
-
-    const cart = getCart();
-
-    if (cart.count < 1) {
-        throw new Error("يرجى اختيار منتج واحد على الأقل.");
-    }
-
-    const formData = new FormData(form);
-
-    const gangName = String(
-        formData.get("gangName") || ""
-    ).trim();
-
-    const radio = String(
-        formData.get("radio") || ""
-    ).trim();
-
-    const location = String(
-        formData.get("location") || ""
-    ).trim();
-
-    if (!gangName || !radio || !location) {
-        throw new Error("يرجى إكمال جميع المعلومات.");
-    }
-
-    if (
-        gangName.length > 80 ||
-        radio.length > 40 ||
-        location.length > 160
-    ) {
-        throw new Error("بعض المعلومات أطول من الحد المسموح.");
-    }
-
-    const delivery = formData.get("delivery");
-
-    if (!["delivery", "pickup"].includes(delivery)) {
-        throw new Error("يرجى اختيار طريقة الاستلام.");
-    }
-
-    const totals = getOrderTotals();
-
-    return {
-        products: {
-            cocaine: cart.cocaine,
-            weed: cart.weed
-        },
-        gangName,
-        radio,
-        location,
-        delivery,
-        subtotal: totals.subtotal,
-        deliveryFee: totals.deliveryFee,
-        total: totals.total
-    };
-}
-
-// ==========================================
-// UPDATE TOTALS
-// ==========================================
-
-function updateTotals() {
-    const totals = getOrderTotals();
-
-    const values = {
-        "subtotal-step3": totals.subtotal,
-        deliveryTotal: totals.deliveryFee,
-        grandTotal: totals.total
-    };
-
-    Object.entries(values).forEach(([id, value]) => {
-        const element = $(id);
-
-        if (element) {
-            element.textContent = money(value);
-        }
-    });
-
-    const deliveryLabel = $("deliveryFeeLabel");
-
-    if (deliveryLabel) {
-        deliveryLabel.textContent =
-            "رسوم التوصيل: " + money(DELIVERY_FEE);
-    }
-
-    if (currentStep === 4) {
-        updateFinalSummary();
-    }
-}
-
-// ==========================================
-// STEP NAVIGATION
-// ==========================================
-
-function showStep(step) {
-    currentStep = Math.max(
-        1,
-        Math.min(TOTAL_STEPS, Number(step))
-    );
-
-    document.querySelectorAll(".form-step").forEach((section) => {
-        const sectionStep = Number(section.dataset.step);
-        const active = sectionStep === currentStep;
-
-        section.classList.toggle("active", active);
-        section.setAttribute("aria-hidden", String(!active));
-    });
-
-    document.querySelectorAll(
-        "[data-step-indicator]"
-    ).forEach((indicator) => {
-        const indicatorStep = Number(
-            indicator.dataset.stepIndicator
-        );
-
-        indicator.classList.toggle(
-            "active",
-            indicatorStep === currentStep
-        );
-
-        indicator.classList.toggle(
-            "completed",
-            indicatorStep < currentStep
-        );
-    });
-
-    if (currentStep === 4) {
-        updateFinalSummary();
-    }
-}
-
-// ==========================================
-// VALIDATE STEP
-// ==========================================
-
-function validateStep(step) {
-    const section = document.querySelector(
-        `.form-step[data-step="${step}"]`
-    );
-
-    if (!section) return false;
-
-    if (step === 1) {
-        if (getCart().count < 1) {
-            alert("يرجى اختيار منتج واحد على الأقل.");
-            return false;
-        }
-    }
-
-    const fields = section.querySelectorAll(
-        "input:not([type='radio']), select, textarea"
-    );
-
-    for (const field of fields) {
-        if (!field.checkValidity()) {
-            field.reportValidity();
-            field.focus();
-            return false;
-        }
-    }
-
-    if (step === 3 && !getDelivery()) {
-        alert("يرجى اختيار طريقة الاستلام.");
-        return false;
-    }
-
-    return true;
-}
-
-// ==========================================
-// STEP BUTTONS
-// ==========================================
-
-function initializeStepNavigation() {
-    document.querySelectorAll("[data-next]").forEach((button) => {
-        button.addEventListener("click", () => {
-            if (isSending) return;
-            if (!validateStep(currentStep)) return;
-
-            showStep(currentStep + 1);
-
-            $("orderSection")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-        });
-    });
-
-    document.querySelectorAll("[data-prev]").forEach((button) => {
-        button.addEventListener("click", () => {
-            if (isSending) return;
-
-            showStep(currentStep - 1);
-
-            $("orderSection")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
-        });
-    });
-}
-
-// ==========================================
-// BUILD SUMMARY
-// ==========================================
-
-function buildSummary(order) {
-    const products = order.products;
-
-    const deliveryText = order.delivery === "delivery"
-        ? "مع التوصيل"
-        : "استلام شخصي";
-
-    let html = "";
-
-    if (products.cocaine > 0) {
-        html += addSummaryRow(
-            "Cocaine",
-            `${products.cocaine} × ${money(PRODUCTS.cocaine.price)} = ${money(products.cocaine * PRODUCTS.cocaine.price)}`
-        );
-    }
-
-    if (products.weed > 0) {
-        html += addSummaryRow(
-            "Weed",
-            `${products.weed} × ${money(PRODUCTS.weed.price)} = ${money(products.weed * PRODUCTS.weed.price)}`
-        );
-    }
-
-    html +=
-        addSummaryRow("اسم العصابة", order.gangName) +
-        addSummaryRow("رقم الراديو", order.radio) +
-        addSummaryRow("الموقع", order.location) +
-        addSummaryRow("طريقة الاستلام", deliveryText) +
-        addSummaryRow("سعر المنتجات", money(order.subtotal)) +
-        addSummaryRow("التوصيل", money(order.deliveryFee)) +
-        addSummaryRow(
-            "المجموع النهائي",
-            money(order.total),
-            "total"
-        );
-
-    return html;
-}
-
-// ==========================================
-// FINAL SUMMARY
-// ==========================================
-
-function updateFinalSummary() {
-    const summary = $("finalSummary");
-
-    if (!summary) return;
-
-    try {
-        const order = makeOrder();
-
-        summary.innerHTML = buildSummary(order);
-
-        if ($("finalTotal")) {
-            $("finalTotal").textContent = money(order.total);
-        }
-    } catch (error) {
-        summary.innerHTML = "";
-    }
-}
-
-// ==========================================
-// FORM SUBMIT
-// ==========================================
-
-function handleFormSubmit(event) {
-    event.preventDefault();
-
-    if (isSending || currentStep !== 4) return;
-
-    for (let step = 1; step <= 3; step++) {
-        if (!validateStep(step)) {
-            showStep(step);
+/* =========================================
+   QUANTITY BUTTONS
+========================================= */
+
+document.querySelectorAll(".quantity-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const productId = button.dataset.product;
+        const action = button.dataset.action;
+
+        if (!Object.prototype.hasOwnProperty.call(cart, productId)) {
             return;
         }
-    }
 
-    try {
-        pendingOrder = makeOrder();
-        updateFinalSummary();
-        openConfirmationModal();
-    } catch (error) {
-        alert(error.message);
-    }
-}
+        let quantity = getQuantity(productId);
 
-// ==========================================
-// CONFIRMATION MODAL
-// ==========================================
-
-function openConfirmationModal() {
-    if (!pendingOrder) return;
-
-    const message = $("modalMessage");
-    const button = $("confirmBtn");
-
-    if ($("summary")) {
-        $("summary").innerHTML = buildSummary(pendingOrder);
-    }
-
-    if (message) {
-        message.textContent = "";
-        message.className = "modal-message";
-    }
-
-    if (button) {
-        button.disabled = false;
-        button.textContent = "تأكيد وإرسال الطلب";
-    }
-
-    $("confirmModal")?.classList.remove("hidden");
-}
-
-function closeConfirmationModal() {
-    if (isSending) return;
-
-    $("confirmModal")?.classList.add("hidden");
-}
-
-function initializeModal() {
-    $("closeModal")?.addEventListener(
-        "click",
-        closeConfirmationModal
-    );
-
-    $("confirmModal")?.addEventListener("click", (event) => {
-        if (event.target === $("confirmModal")) {
-            closeConfirmationModal();
+        if (action === "increase") {
+            quantity += 1;
         }
+
+        if (action === "decrease") {
+            quantity -= 1;
+        }
+
+        setQuantity(productId, quantity);
+    });
+});
+
+/* =========================================
+   MANUAL QUANTITY INPUT
+========================================= */
+
+document.querySelectorAll(".quantity-input").forEach(input => {
+    input.addEventListener("input", () => {
+        const productId = input.dataset.product;
+
+        /*
+          Allow the input to be temporarily empty
+          while the customer is typing.
+        */
+
+        if (input.value === "") {
+            cart[productId] = 0;
+            updateStore();
+            return;
+        }
+
+        setQuantity(productId, input.value);
     });
 
-    document.addEventListener("keydown", (event) => {
-        if (
-            event.key === "Escape" &&
-            !$("confirmModal")?.classList.contains("hidden")
-        ) {
-            closeConfirmationModal();
+    input.addEventListener("blur", () => {
+        const productId = input.dataset.product;
+
+        setQuantity(productId, input.value);
+    });
+});
+
+/* =========================================
+   BUY PRODUCT BUTTONS
+========================================= */
+
+document.querySelectorAll(".buy-product-btn").forEach(button => {
+    button.addEventListener("click", () => {
+        const productId = button.dataset.product;
+        const quantity = getQuantity(productId);
+
+        if (quantity < 1) {
+            alert("حدد كمية أكبر من 0 أولًا.");
+            return;
         }
+
+        if (PRODUCTS[productId].price === null) {
+            alert(
+                "سعر Meth لم يتم تحديده بعد. يمكنك اختياره لاحقًا."
+            );
+            return;
+        }
+
+        showPage("summary");
+        renderSummary();
+    });
+});
+
+/* =========================================
+   UPDATE STORE
+========================================= */
+
+function updateStore() {
+    for (const productId of Object.keys(PRODUCTS)) {
+        const product = PRODUCTS[productId];
+        const quantity = getQuantity(productId);
+
+        const subtotalElement = document.getElementById(
+            `${productId}Subtotal`
+        );
+
+        if (subtotalElement) {
+            if (product.price === null && quantity > 0) {
+                subtotalElement.textContent = "غير محدد";
+            } else if (product.price === null) {
+                subtotalElement.textContent = "غير محدد";
+            } else {
+                subtotalElement.textContent = formatPrice(
+                    product.price * quantity
+                );
+            }
+        }
+    }
+
+    selectedItemsCount.textContent = getTotalItems();
+
+    if (hasUnpricedItems()) {
+        productsTotal.textContent = "غير مكتمل";
+    } else {
+        productsTotal.textContent = formatPrice(getPricedItemsTotal());
+    }
+
+    updateFinalTotals();
+}
+
+/* =========================================
+   SUMMARY PAGE
+========================================= */
+
+function renderSummary() {
+    summaryProducts.replaceChildren();
+
+    const selectedProducts = getOrderDetails();
+
+    if (selectedProducts.length === 0) {
+        const emptyMessage = document.createElement("p");
+
+        emptyMessage.textContent = "لم تختر أي منتجات بعد.";
+        emptyMessage.className = "empty-message";
+
+        summaryProducts.appendChild(emptyMessage);
+    }
+
+    selectedProducts.forEach(item => {
+        const card = document.createElement("article");
+        card.className = "summary-product";
+
+        const details = document.createElement("div");
+
+        const title = document.createElement("h3");
+        title.textContent = item.name;
+
+        const quantity = document.createElement("p");
+        quantity.textContent = `الكمية: ${item.quantity}`;
+
+        const unitPrice = document.createElement("p");
+
+        unitPrice.textContent = item.unitPrice === null
+            ? "سعر الوحدة: غير محدد"
+            : `سعر الوحدة: ${formatPrice(item.unitPrice)}`;
+
+        details.append(title, quantity, unitPrice);
+
+        const subtotal = document.createElement("strong");
+        subtotal.className = "summary-product-price";
+
+        subtotal.textContent = item.subtotal === null
+            ? "غير محدد"
+            : formatPrice(item.subtotal);
+
+        card.append(details, subtotal);
+        summaryProducts.appendChild(card);
     });
 
-    $("confirmBtn")?.addEventListener("click", sendOrder);
-}
-
-// ==========================================
-// RESET ORDER
-// ==========================================
-
-function resetOrder() {
-    $("orderForm")?.reset();
-
-    quantities.cocaine = 0;
-    quantities.weed = 0;
-
-    pendingOrder = null;
-
-    updateCart();
-    showStep(1);
-}
-
-// ==========================================
-// SEND ORDER TO SERVER
-// ==========================================
-
-async function sendOrder() {
-    if (!pendingOrder || isSending) return;
-
-    isSending = true;
-
-    const button = $("confirmBtn");
-    const message = $("modalMessage");
-
-    if (button) {
-        button.disabled = true;
-        button.textContent = "جاري إرسال الطلب...";
+    if (hasUnpricedItems()) {
+        summarySubtotal.textContent = "غير مكتمل";
+        summaryTotal.textContent = "غير مكتمل";
+    } else {
+        summarySubtotal.textContent = formatPrice(getSubtotal());
+        summaryTotal.textContent = formatPrice(getSubtotal());
     }
 
-    if (message) {
-        message.textContent = "";
-        message.className = "modal-message";
+    updateFinalTotals();
+}
+
+/* =========================================
+   FINAL TOTALS
+========================================= */
+
+function updateFinalTotals() {
+    finalItemsCount.textContent = getTotalItems();
+
+    if (hasUnpricedItems()) {
+        finalTotal.textContent = "غير مكتمل";
+    } else {
+        finalTotal.textContent = formatPrice(getSubtotal());
     }
+}
+
+/* =========================================
+   NAVIGATION BUTTONS
+========================================= */
+
+backToWelcomeBtn.addEventListener("click", () => {
+    showPage("welcome");
+});
+
+continueToSummaryBtn.addEventListener("click", () => {
+    if (getTotalItems() === 0) {
+        alert("اختر منتجًا واحدًا على الأقل.");
+        return;
+    }
+
+    if (hasUnpricedItems()) {
+        alert(
+            "يوجد منتج لم يُحدد سعره بعد. احذف Meth من الطلب حتى يتم تحديد سعره."
+        );
+        return;
+    }
+
+    renderSummary();
+    showPage("summary");
+});
+
+backToProductsBtn.addEventListener("click", () => {
+    showPage("products");
+});
+
+continueToConfirmBtn.addEventListener("click", () => {
+    if (getTotalItems() === 0) {
+        alert("لا يوجد أي منتج في الطلب.");
+        return;
+    }
+
+    if (hasUnpricedItems()) {
+        alert("لا يمكن تأكيد الطلب قبل تحديد سعر جميع المنتجات.");
+        return;
+    }
+
+    renderSummary();
+    updateFinalTotals();
+    showPage("confirm");
+});
+
+backToSummaryBtn.addEventListener("click", () => {
+    renderSummary();
+    showPage("summary");
+});
+
+/* =========================================
+   ORDER SUBMISSION — RENDER SERVER
+========================================= */
+
+const API_URL = "https://madrazo-family.onrender.com";
+
+orderForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (getTotalItems() === 0) {
+        alert("اختر المنتجات أولًا.");
+        showPage("products");
+        return;
+    }
+
+    if (hasUnpricedItems()) {
+        alert("يوجد منتج لم يتم تحديد سعره.");
+        return;
+    }
+
+    const gangName = document.getElementById("gangName").value.trim();
+    const radioNumber = document.getElementById("radioNumber").value.trim();
+    const deliveryLocation = document.getElementById("deliveryLocation").value.trim();
+
+    if (!gangName) {
+        alert("اكتب اسم العصابة أو المافيا.");
+        return;
+    }
+
+    const order = {
+        gangName,
+        radioNumber,
+        deliveryLocation,
+        products: getOrderDetails(),
+        total: getSubtotal()
+    };
+
+    submitOrderBtn.disabled = true;
+    submitOrderBtn.textContent = "جارٍ إرسال الطلب...";
+    orderMessage.textContent = "";
+    orderMessage.className = "order-message";
 
     try {
-        const orderData = {
-            products: {
-                cocaine: Number(pendingOrder.products.cocaine),
-                weed: Number(pendingOrder.products.weed)
-            },
-            gangName: pendingOrder.gangName,
-            radio: pendingOrder.radio,
-            location: pendingOrder.location,
-            delivery: pendingOrder.delivery
-        };
-
-        const response = await fetch("/api/orders", {
+        const response = await fetch(`${API_URL}/api/orders`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(orderData)
+            body: JSON.stringify(order)
         });
 
         const result = await response.json().catch(() => ({}));
 
-        if (!response.ok || result.success !== true) {
-            throw new Error(
-                result.message || "تعذر إرسال الطلب. حاول مرة أخرى."
-            );
+        if (!response.ok) {
+            throw new Error(result.message || "تعذر إرسال الطلب.");
         }
 
-        if (message) {
-            message.textContent =
-                "تم إرسال طلبك بنجاح! شكراً لثقتك بـ MADRAZO FAMILY.";
+        orderMessage.textContent = "تم إرسال الطلب بنجاح!";
+        orderMessage.classList.add("success");
 
-            message.className = "modal-message success";
-        }
+        submitOrderBtn.textContent = "تم إرسال الطلب ✓";
 
-        if (button) {
-            button.disabled = true;
-            button.textContent = "تم الإرسال ✓";
-        }
-
-        resetOrder();
-
-        // إبقاء رسالة النجاح ظاهرة
-        $("confirmModal")?.classList.remove("hidden");
+        alert("تم إرسال طلبك بنجاح إلى الإدارة.");
 
     } catch (error) {
-        console.error("Order sending error:", error);
+        console.error("Order submission failed:", error);
 
-        if (message) {
-            message.textContent =
-                error.message || "حدث خطأ أثناء إرسال الطلب.";
+        orderMessage.textContent =
+            "تعذر إرسال الطلب. حاول مرة أخرى.";
 
-            message.className = "modal-message error";
-        }
+        orderMessage.classList.add("error");
 
-        if (button) {
-            button.disabled = false;
-            button.textContent = "إعادة المحاولة";
-        }
-
-    } finally {
-        isSending = false;
+        submitOrderBtn.disabled = false;
+        submitOrderBtn.textContent = "إعادة محاولة إرسال الطلب";
     }
-}
+});
