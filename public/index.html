@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MADRAZO FAMILY | Official Store</title>
+
+    <meta name="theme-color" content="#080808">
+    <meta name="description" content="MADRAZO FAMILY Official GTA RP Store">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- MUSIC -->
+    <audio id="backgroundMusic" loop preload="auto">
+        <source src="music/cartel.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- MUSIC CONTROL -->
+    <button id="musicToggle" class="music-toggle" type="button" hidden>
+        🔊 الموسيقى
+    </button>
+
+    <!-- ================================= -->
+    <!-- PAGE 1 : WELCOME -->
+    <!-- ================================= -->
+
+    <main>
+
+        <section id="welcomePage" class="page welcome-page active">
+
+            <div class="welcome-content">
+
+                <div class="family-logo">
+                    MF
+                </div>
+
+                <p class="eyebrow">THE FAMILY BUSINESS</p>
+
+                <h1 class="main-title">
+                    MADRAZO <span>FAMILY</span>
+                </h1>
+
+                <div class="gold-line"></div>
+
+                <p class="subtitle">
+                    OFFICIAL GTA RP STORE
+                </p>
+
+                <p class="welcome-description">
+                    Welcome to the Family.
+                </p>
+
+                <button id="enterStoreBtn" class="btn btn-gold" type="button">
+                    الدخول إلى المتجر
+                    <span>←</span>
+                </button>
+
+                <p class="footer-note">
+                    MADRAZO FAMILY © 2026
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PAGE 2 : PRODUCTS -->
+        <!-- ================================= -->
+
+        <section id="productsPage" class="page content-page">
+
+            <header class="store-header">
+
+                <div class="header-logo">MF</div>
+
+                <div>
+                    <p class="eyebrow">OFFICIAL STORE</p>
+                    <h2>MADRAZO <span>FAMILY</span></h2>
+                </div>
+
+            </header>
+
+            <div class="section-heading">
+                <p class="eyebrow">CHOOSE YOUR PRODUCTS</p>
+                <h1>المنتجات</h1>
+                <p>اختر المنتجات وحدد الكمية التي تريدها.</p>
+            </div>
+
+            <div id="productsContainer" class="products-container">
+
+                <!-- Cocaine -->
+                <article class="product-card" data-product="cocaine">
+
+                    <div class="product-image product-image-cocaine">
+                        <span class="product-symbol">C</span>
+                        <span class="product-label">MADRAZO PRODUCT</span>
+                    </div>
+
+                    <div class="product-info">
+
+                        <h3>Cocaine</h3>
+
+                        <p class="product-description">
+                            Premium Product
+                        </p>
+
+                        <div class="product-price">
+                            <span>600$</span>
+                            <small>GTA RP</small>
+                        </div>
+
+                        <label for="cocaineQuantity">
+                            الكمية
+                        </label>
+
+                        <div class="quantity-control">
+
+                            <button
+                                class="quantity-btn"
+                                type="button"
+                                data-action="increase"
+                                data-product="cocaine"
+                                aria-label="زيادة كمية Cocaine"
+                            >+</button>
+
+                            <input
+                                id="cocaineQuantity"
+                                class="quantity-input"
+                                type="number"
+                                min="0"
+                                max="1000"
+                                step="1"
+                                value="0"
+                                inputmode="numeric"
+                                data-product="cocaine"
+                                aria-label="كمية Cocaine"
+                            >
+
+                            <button
+                                class="quantity-btn"
+                                type="button"
+                                data-action="decrease"
+                                data-product="cocaine"
+                                aria-label="تقليل كمية Cocaine"
+                            >−</button>
+
+                        </div>
+
+                        <p class="product-subtotal">
+                            المجموع:
+                            <strong id="cocaineSubtotal">0$</strong>
+                        </p>
+
+                        <button
+                            class="btn btn-outline buy-product-btn"
+                            type="button"
+                            data-product="cocaine"
+                        >
+                            شراء
+                        </button>
+
+                    </div>
+
+                </article>
+
+
+                <!-- Meth -->
+                <article class="product-card" data-product="meth">
+
+                    <div class="product-image product-image-meth">
+                        <span class="product-symbol">M</span>
+                        <span class="product-label">MADRAZO PRODUCT</span>
+                    </div>
+
+                    <div class="product-info">
+
+                        <h3>Meth</h3>
+
+                        <p class="product-description">
+                            Special Product
+                        </p>
+
+                        <div class="product-price">
+                            <span>600$
+                            </span>
+                            <small>GTA RP</small>
+                        </div>
+
+                        <label for="methQuantity">
+                            الكمية
+                        </label>
+
+                        <div class="quantity-control">
+
+                            <button
+                                class="quantity-btn"
+                                type="button"
+                                data-action="increase"
+                                data-product="meth"
+                                aria-label="زيادة كمية Meth"
+                            >+</button>
+
+                            <input
+                                id="methQuantity"
+                                class="quantity-input"
+                                type="number"
+                                min="0"
+                                max="1000"
+                                step="1"
+                                value="0"
+                                inputmode="numeric"
+                                data-product="meth"
+                                aria-label="كمية Meth"
+                            >
+
+                            <button
+                                class="quantity-btn"
+                                type="button"
+                                data-action="decrease"
+                                data-product="meth"
+                                aria-label="تقليل كمية Meth"
+                            >−</button>
+
+                        </div>
+
+                        <p class="product-subtotal">
+                            المجموع:
+                            <strong id="methSubtotal">600$</strong>
+                        </p>
+
+                        <button
+                            class="btn btn-outline buy-product-btn"
+                            type="button"
+                            data-product="meth"
+                        >
+                            شراء
+                        </button>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <div class="cart-summary">
+
+                <div>
+                    <p>عدد المنتجات المختارة</p>
+                    <strong id="selectedItemsCount">0</strong>
+                </div>
+
+                <div>
+                    <p>المجموع الحالي</p>
+                    <strong id="productsTotal">0$</strong>
+                </div>
+
+            </div>
+
+            <div class="page-actions">
+
+                <button id="backToWelcomeBtn" class="btn btn-dark" type="button">
+                    رجوع
+                </button>
+
+                <button id="continueToSummaryBtn" class="btn btn-gold" type="button">
+                    متابعة الطلب ←
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PAGE 3 : ORDER SUMMARY -->
+        <!-- ================================= -->
+
+        <section id="summaryPage" class="page content-page">
+
+            <header class="store-header">
+
+                <div class="header-logo">MF</div>
+
+                <div>
+                    <p class="eyebrow">ORDER DETAILS</p>
+                    <h2>ملخص <span>الطلب</span></h2>
+                </div>
+
+            </header>
+
+            <div class="section-heading">
+
+                <p class="eyebrow">YOUR SELECTION</p>
+
+                <h1>مراجعة الطلب</h1>
+
+                <p>تأكد من المنتجات والكميات قبل التأكيد.</p>
+
+            </div>
+
+            <div id="summaryProducts" class="summary-products">
+
+                <!-- المنتجات المختارة ستظهر هنا بواسطة JavaScript -->
+
+            </div>
+
+            <div class="total-card">
+
+                <div class="total-row">
+                    <span>مجموع المنتجات</span>
+                    <strong id="summarySubtotal">0$</strong>
+                </div>
+
+                <div class="gold-line"></div>
+
+                <div class="total-row grand-total">
+                    <span>المجموع النهائي</span>
+                    <strong id="summaryTotal">0$</strong>
+                </div>
+
+                <p class="no-delivery-note">
+                    لا توجد رسوم توصيل.
+                </p>
+
+            </div>
+
+            <div class="page-actions">
+
+                <button id="backToProductsBtn" class="btn btn-dark" type="button">
+                    العودة للمنتجات
+                </button>
+
+                <button id="continueToConfirmBtn" class="btn btn-gold" type="button">
+                    متابعة ←
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================================= -->
+        <!-- PAGE 4 : CONFIRM & DISCORD -->
+        <!-- ================================= -->
+
+        <section id="confirmPage" class="page content-page">
+
+            <header class="store-header">
+
+                <div class="header-logo">MF</div>
+
+                <div>
+                    <p class="eyebrow">FINAL STEP</p>
+                    <h2>تأكيد <span>الطلب</span></h2>
+                </div>
+
+            </header>
+
+            <div class="section-heading">
+
+                <p class="eyebrow">MADRAZO FAMILY</p>
+
+                <h1>الخطوة الأخيرة</h1>
+
+                <p>أدخل معلومات الطلب ثم أرسله إلى الإدارة.</p>
+
+            </div>
+
+            <form id="orderForm" class="order-form">
+
+                <div class="form-group">
+
+                    <label for="gangName">
+                        اسم العصابة أو المافيا
+                    </label>
+
+                    <input
+                        id="gangName"
+                        name="gangName"
+                        type="text"
+                        maxlength="60"
+                        placeholder="اكتب اسم العصابة"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="radioNumber">
+                        رقم الراديو
+                    </label>
+
+                    <input
+                        id="radioNumber"
+                        name="radioNumber"
+                        type="text"
+                        maxlength="30"
+                        placeholder="اكتب رقم الراديو"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="deliveryLocation">
+                        الموقع داخل اللعبة
+                    </label>
+
+                    <input
+                        id="deliveryLocation"
+                        name="deliveryLocation"
+                        type="text"
+                        maxlength="120"
+                        placeholder="اكتب الموقع داخل GTA RP"
+                    >
+
+                </div>
+
+                <div class="final-order-card">
+
+                    <p>عدد الوحدات</p>
+                    <strong id="finalItemsCount">0</strong>
+
+                    <div class="gold-line"></div>
+
+                    <p>المجموع النهائي</p>
+                    <strong id="finalTotal" class="final-price">0$</strong>
+
+                </div>
+
+                <p id="orderMessage" class="order-message" role="status"></p>
+
+                <button
+                    id="submitOrderBtn"
+                    class="btn btn-gold btn-submit"
+                    type="submit"
+                >
+                    إرسال الطلب إلى Discord
+                </button>
+
+            </form>
+
+            <div class="page-actions">
+
+                <button id="backToSummaryBtn" class="btn btn-dark" type="button">
+                    العودة إلى الملخص
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+        MADRAZO FAMILY — THE FAMILY BUSINESS
+    </footer>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>

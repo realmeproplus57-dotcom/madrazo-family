@@ -9,74 +9,71 @@ const path = require("path");
 const app = express();
 
 const PORT = Number(process.env.PORT) || 3000;
-const DELIVERY_FEE = Number(process.env.DELIVERY_FEE || 650);
-const MAX_QUANTITY = 1000;
-
-const PRODUCTS = {
-    cocaine: { name: "Cocaine", price: 750 },
-    weed: { name: "Weed", price: 750 }
-};
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "20kb" }));
-app.use(express.static(path.join(__dirname, "public")));
 
 // ==========================================
-// DISCORD WEBHOOK
+// PRODUCTS
 // ==========================================
 
-function getWebhookUrl() {
-    // يقبل الاسمين لتفادي اختلاف .env
-    const webhookUrl =
-        process.env.DISCORD_WEBHOOK_URL ||
-        process.env.DISCORD_WEBHOOKURL;
+const PRODUCTS = Object.freeze({
+    cocaine: Object.freeze({
+        name: "Cocaine",
+        price: 600
+    }),
 
-    if (!webhookUrl) {
-        throw new Error("Discord webhook is missing.");
-    }
+    meth: Object.freeze({
+        name: "Meth",
+        price: 600
+    })
+});
 
-    let parsed;
-
-    try {
-        parsed = new URL(webhookUrl);
-    } catch {
-        throw new Error("Invalid Discord webhook URL.");
-    }
-
-    const validHost = [
-        "discord.com",
-        "discordapp.com"
-    ].includes(parsed.hostname);
-
-    const validPath =
-        /^\/api\/webhooks\/\d+\/[^/]+\/?$/.test(parsed.pathname);
-
-    if (
-        parsed.protocol !== "https:" ||
-        !validHost ||
-        !validPath
-    ) {
-        throw new Error("Invalid Discord webhook URL.");
-    }
-
-    return webhookUrl;
-}
+const MAX_QUANTITY = 1000;
+const MAX_GANG_NAME_LENGTH = 60;
+const MAX_RADIO_LENGTH = 30;
+const MAX_LOCATION_LENGTH = 120;
 
 // ==========================================
-// HELPERS
+// STATIC WEBSITE
+// ==========================================
+
+const PUBLIC_DIR = path.join(__dirname, "public");
+
+app.use(express.static(PUBLIC_DIR));
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
+
+// ==========================================
+// VALIDATION HELPERS
 // ==========================================
 
 function cleanText(value, maxLength) {
-    if (typeof value !== "string") return "";
+    if (typeof value !== "string") {
+        return "";
+    }
 
     return value
-        .trim()
         .replace(/[\u0000-\u001F\u007F]/g, "")
+        .trim()
         .slice(0, maxLength);
 }
 
-function formatPrice(value) {
-    return value.toLocaleString("en-US") + "$";
+function isValidWebhookUrl(value) {
+    try {
+        const url = new URL(value);
+
+        return (
+            url.protocol === "https:" &&
+            url.hostname === "discord.com" &&
+            /^\/api\/webhooks\/\d+\/[^/]+\/?$/.test(url.pathname)
+        );
+    } catch {
+        return false;
+    }
 }
 
 // ==========================================
@@ -85,268 +82,263 @@ function formatPrice(value) {
 
 app.post("/api/orders", async (req, res) => {
     try {
-        const {
-            products,
-            gangName,
-            radio,
-            location,
-            delivery
-        } = req.body || {};
+        const body = req.body;
 
-        console.log("Received order:", JSON.stringify(req.body));
-
-        // Validate products object
-        if (
-            !products ||
-            typeof products !== "object" ||
-            Array.isArray(products)
-        ) {
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
             return res.status(400).json({
-                success: false,
-                message: "قائمة المنتجات غير صالحة."
+                message: "بيانات الطلب غير صحيحة."
             });
         }
 
-        // Reject unknown product names
-        const unknownProducts = Object.keys(products).filter(
-            key => !Object.prototype.hasOwnProperty.call(PRODUCTS, key)
+        const gangName = cleanText(
+            body.gangName,
+            MAX_GANG_NAME_LENGTH
         );
 
-        if (unknownProducts.length > 0) {
-            console.error("Unknown products:", unknownProducts);
+        const radioNumber = cleanText(
+            body.radioNumber,
+            MAX_RADIO_LENGTH
+        );
 
+        const deliveryLocation = cleanText(
+            body.deliveryLocation,
+            MAX_LOCATION_LENGTH
+        );
+
+        if (!gangName) {
             return res.status(400).json({
-                success: false,
-                message: "يوجد منتج غير صالح: " + unknownProducts.join(", ")
+                message: "اسم العصابة مطلوب."
             });
         }
 
-        // Read and validate quantities
-        const quantities = {
-            cocaine: products.cocaine ?? 0,
-            weed: products.weed ?? 0
-        };
+        if (
+            !Array.isArray(body.products) ||
+            body.products.length === 0
+        ) {
+            return res.status(400).json({
+                message: "يجب اختيار منتج واحد على الأقل."
+            });
+        }
 
-        for (const key of Object.keys(PRODUCTS)) {
-            const quantity = quantities[key];
+        if (body.products.length > Object.keys(PRODUCTS).length) {
+            return res.status(400).json({
+                message: "قائمة المنتجات غير صحيحة."
+            });
+        }
 
-            if (
-                !Number.isSafeInteger(quantity) ||
-                quantity < 0 ||
-                quantity > MAX_QUANTITY
-            ) {
-                console.error("Invalid quantity:", key, quantity);
+        const seenProducts = new Set();
+        const validatedProducts = [];
 
+        let total = 0;
+        let totalItems = 0;
+
+        for (const item of body.products) {
+            if (!item || typeof item !== "object") {
                 return res.status(400).json({
-                    success: false,
-                    message: "كمية المنتج غير صالحة: " + key
+                    message: "أحد المنتجات غير صحيح."
                 });
             }
-        }
 
-        const totalQuantity =
-            quantities.cocaine + quantities.weed;
+            const productId = item.id;
 
-        if (totalQuantity < 1) {
-            return res.status(400).json({
-                success: false,
-                message: "يرجى اختيار منتج واحد على الأقل."
-            });
-        }
-
-        // Validate customer information
-        const cleanGangName = cleanText(gangName, 80);
-        const cleanRadio = cleanText(radio, 40);
-        const cleanLocation = cleanText(location, 160);
-
-        if (!cleanGangName || !cleanRadio || !cleanLocation) {
-            return res.status(400).json({
-                success: false,
-                message: "يرجى ملء جميع المعلومات المطلوبة."
-            });
-        }
-
-        // Validate delivery
-        if (!["delivery", "pickup"].includes(delivery)) {
-            return res.status(400).json({
-                success: false,
-                message: "طريقة الاستلام غير صالحة."
-            });
-        }
-
-        // Calculate prices on server
-        const cocaineTotal =
-            PRODUCTS.cocaine.price * quantities.cocaine;
-
-        const weedTotal =
-            PRODUCTS.weed.price * quantities.weed;
-
-        const subtotal = cocaineTotal + weedTotal;
-
-        const deliveryCost =
-            delivery === "delivery" ? DELIVERY_FEE : 0;
-
-        const total = subtotal + deliveryCost;
-
-        // Validate webhook configuration
-        const webhookUrl = getWebhookUrl();
-
-        // Build product fields
-        const productFields = [];
-
-        if (quantities.cocaine > 0) {
-            productFields.push({
-                name: "🧪 COCAINE",
-                value:
-                    `Quantity: ${quantities.cocaine}\n` +
-                    `Unit Price: ${formatPrice(PRODUCTS.cocaine.price)}\n` +
-                    `Total: ${formatPrice(cocaineTotal)}`,
-                inline: true
-            });
-        }
-
-        if (quantities.weed > 0) {
-            productFields.push({
-                name: "🌿 WEED",
-                value:
-                    `Quantity: ${quantities.weed}\n` +
-                    `Unit Price: ${formatPrice(PRODUCTS.weed.price)}\n` +
-                    `Total: ${formatPrice(weedTotal)}`,
-                inline: true
-            });
-        }
-
-        // Discord message
-        const discordMessage = {
-            username: "MADRAZO FAMILY STORE",
-            embeds: [{
-                title: "🛒 NEW ORDER - MADRAZO FAMILY",
-                description: "طلب جديد من المتجر الإلكتروني.",
-                color: 0xD4AF37,
-                fields: [
-                    ...productFields,
-                    {
-                        name: "📦 TOTAL QUANTITY",
-                        value: String(totalQuantity),
-                        inline: true
-                    },
-                    {
-                        name: "👥 GANG NAME",
-                        value: cleanGangName,
-                        inline: true
-                    },
-                    {
-                        name: "📻 RADIO",
-                        value: cleanRadio,
-                        inline: true
-                    },
-                    {
-                        name: "📍 LOCATION",
-                        value: cleanLocation,
-                        inline: false
-                    },
-                    {
-                        name: "🚚 DELIVERY",
-                        value: delivery === "delivery"
-                            ? "Delivery"
-                            : "Pickup",
-                        inline: true
-                    },
-                    {
-                        name: "🧾 SUBTOTAL",
-                        value: formatPrice(subtotal),
-                        inline: true
-                    },
-                    {
-                        name: "🚗 DELIVERY FEE",
-                        value: formatPrice(deliveryCost),
-                        inline: true
-                    },
-                    {
-                        name: "💰 TOTAL",
-                        value: `**${formatPrice(total)}**`,
-                        inline: false
-                    }
-                ],
-                footer: {
-                    text: "MADRAZO FAMILY • OFFICIAL STORE"
-                },
-                timestamp: new Date().toISOString()
-            }],
-            allowed_mentions: {
-                parse: []
+            if (
+                typeof productId !== "string" ||
+                !Object.prototype.hasOwnProperty.call(PRODUCTS, productId)
+            ) {
+                return res.status(400).json({
+                    message: "يوجد منتج غير معروف."
+                });
             }
+
+            if (seenProducts.has(productId)) {
+                return res.status(400).json({
+                    message: "يوجد منتج مكرر في الطلب."
+                });
+            }
+
+            seenProducts.add(productId);
+
+            const product = PRODUCTS[productId];
+
+            if (
+                !Number.isSafeInteger(item.quantity) ||
+                item.quantity < 1 ||
+                item.quantity > MAX_QUANTITY
+            ) {
+                return res.status(400).json({
+                    message: "الكمية غير صحيحة."
+                });
+            }
+
+            if (
+                !Number.isSafeInteger(product.price) ||
+                product.price <= 0
+            ) {
+                return res.status(400).json({
+                    message: `سعر ${product.name} غير صحيح.`
+                });
+            }
+
+            const subtotal = product.price * item.quantity;
+
+            if (!Number.isSafeInteger(subtotal)) {
+                return res.status(400).json({
+                    message: "قيمة الطلب أكبر من المسموح."
+                });
+            }
+
+            total += subtotal;
+            totalItems += item.quantity;
+
+            validatedProducts.push({
+                name: product.name,
+                quantity: item.quantity,
+                unitPrice: product.price,
+                subtotal
+            });
+        }
+
+        if (!Number.isSafeInteger(total) || total <= 0) {
+            return res.status(400).json({
+                message: "المجموع النهائي غير صحيح."
+            });
+        }
+
+        // ==========================================
+        // WEBHOOK VALIDATION
+        // ==========================================
+
+        if (!DISCORD_WEBHOOK_URL) {
+            console.error("Discord Webhook is not configured.");
+
+            return res.status(503).json({
+                message: "لم يتم إعداد Discord Webhook."
+            });
+        }
+
+        if (!isValidWebhookUrl(DISCORD_WEBHOOK_URL)) {
+            console.error("Discord Webhook URL is invalid.");
+
+            return res.status(500).json({
+                message: "رابط Discord Webhook غير صحيح."
+            });
+        }
+
+        // ==========================================
+        // DISCORD EMBED
+        // ==========================================
+
+        const productLines = validatedProducts.map(product => {
+            return [
+                `**${product.name}**`,
+                `الكمية: ${product.quantity}`,
+                `سعر الوحدة: ${product.unitPrice}$`,
+                `المجموع: ${product.subtotal}$`
+            ].join("\n");
+        });
+
+        const description = [
+            "طلب جديد من متجر MADRAZO FAMILY",
+            "",
+            ...productLines,
+            "",
+            `**عدد الوحدات:** ${totalItems}`,
+            `**المجموع النهائي:** ${total}$`
+        ].join("\n");
+
+        const embed = {
+            title: "🖤 MADRAZO FAMILY | NEW ORDER",
+            description,
+            color: 0xD4AF37,
+
+            fields: [
+                {
+                    name: "اسم العصابة",
+                    value: gangName,
+                    inline: true
+                },
+                {
+                    name: "رقم الراديو",
+                    value: radioNumber || "لم يُحدد",
+                    inline: true
+                },
+                {
+                    name: "الموقع داخل اللعبة",
+                    value: deliveryLocation || "لم يُحدد",
+                    inline: false
+                },
+                {
+                    name: "حالة الطلب",
+                    value: "طلب جديد",
+                    inline: true
+                }
+            ],
+
+            footer: {
+                text: "MADRAZO FAMILY • Official GTA RP Store"
+            },
+
+            timestamp: new Date().toISOString()
         };
 
-        // Send to Discord
-        const controller = new AbortController();
+        // ==========================================
+        // SEND TO DISCORD
+        // ==========================================
 
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, 10000);
-
-        let discordResponse;
-
-        try {
-            discordResponse = await fetch(webhookUrl, {
+        const discordResponse = await fetch(
+            DISCORD_WEBHOOK_URL,
+            {
                 method: "POST",
+
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify(discordMessage),
-                signal: controller.signal
-            });
-        } finally {
-            clearTimeout(timeout);
-        }
+
+                body: JSON.stringify({
+                    username: "MADRAZO FAMILY",
+                    embeds: [embed],
+
+                    allowed_mentions: {
+                        parse: []
+                    }
+                }),
+
+                signal: AbortSignal.timeout(15000)
+            }
+        );
 
         if (!discordResponse.ok) {
-            const errorText = await discordResponse.text();
+            const discordError = await discordResponse.text();
 
             console.error(
-                "Discord error:",
+                "Discord HTTP Error:",
                 discordResponse.status,
-                errorText
+                discordError.slice(0, 1000)
             );
 
             return res.status(502).json({
-                success: false,
-                message: "Discord رفض إرسال الطلب. تحقق من Webhook."
+                message: `Discord رفض الطلب. رمز الخطأ: ${discordResponse.status}`
             });
         }
 
-        console.log(
-            `[NEW ORDER] Cocaine x${quantities.cocaine} | ` +
-            `Weed x${quantities.weed} | ` +
-            `${cleanGangName} | ${formatPrice(total)}`
-        );
+        console.log("SUCCESS: Order sent to Discord.");
 
         return res.status(200).json({
             success: true,
-            message: "تم إرسال طلبك بنجاح!"
+            message: "تم إرسال الطلب بنجاح."
         });
 
     } catch (error) {
-        console.error("ORDER ERROR:", error);
+        console.error(
+            "ORDER ERROR:",
+            error.name,
+            error.message
+        );
 
         return res.status(500).json({
-            success: false,
-            message: error.name === "AbortError"
-                ? "انتهت مهلة إرسال الطلب."
-                : "حدث خطأ أثناء معالجة الطلب."
+            message: "حدث خطأ أثناء معالجة الطلب."
         });
     }
-});
-
-// ==========================================
-// 404
-// ==========================================
-
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "الصفحة غير موجودة."
-    });
 });
 
 // ==========================================
@@ -354,9 +346,8 @@ app.use((req, res) => {
 // ==========================================
 
 app.listen(PORT, () => {
-    console.log("----------------------------------");
-    console.log("MADRAZO FAMILY STORE");
-    console.log(`Server running on port ${PORT}`);
-    console.log(`http://localhost:${PORT}`);
-    console.log("----------------------------------");
+    console.log("-------------------------------------");
+    console.log(" MADRAZO FAMILY STORE");
+    console.log(` http://localhost:${PORT}`);
+    console.log("-------------------------------------");
 });
